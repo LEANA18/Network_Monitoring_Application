@@ -47,10 +47,16 @@ class NetworkMonitorApp:
     def monitor_loop(self):
         while self.running:
             ip = get_current_ip()
-            status = 'Connected' if check_internet() else 'Disconnected'
+            connected,dns_server=check_internet()
+            status = 'Connected' if connected else 'Disconnected'
+            if connected:
+                print(f"Internet is connected via DNS: {dns_server}")
+            else:
+                print(f"Internet is not reachable via any DNS.")
             signal = get_wifi_strength() or 0
             timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
             self.db.insert(timestamp, ip, signal, status)
+            self.root.title(f"Network Monitoring Application - {status}")
 
             if status != self.last_status:
                 msg = f"Network {status.lower()}"

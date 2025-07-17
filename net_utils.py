@@ -2,6 +2,7 @@ import socket
 import subprocess
 import os
 import re
+import platform
 
 def get_current_ip():
     try:
@@ -14,7 +15,16 @@ def get_current_ip():
         return "Unavailable"
 
 def check_internet():
-    return os.system("ping -n 1 8.8.8.8 >nul 2>&1") == 0  # For Windows
+  
+    hosts = ["8.8.8.8", "1.1.1.1", "9.9.9.9"]
+
+    for host in hosts:
+        response = os.system(f"ping -n 1 {host} >nul 2>&1") 
+       
+        if response == 0:
+            return True, host 
+
+    return False, None 
 
 def get_wifi_strength():
     try:
