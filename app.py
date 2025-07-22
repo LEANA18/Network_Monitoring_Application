@@ -1,6 +1,9 @@
 import time
 import threading
 import tkinter as tk
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.dates as mdates
 from tkinter import ttk
 from db_handler import DBHandler
 from net_utils import get_current_ip, check_internet, get_wifi_strength
@@ -19,6 +22,10 @@ class NetworkMonitorApp:
             self.tree.heading(col, text=col)
         self.tree.pack(fill=tk.BOTH, expand=True)
 
+        
+        graph_button = tk.Button(self.root, text="Show Signal Graph", command=self.show_graph)
+        graph_button.pack(pady=5)
+
         self.running = True
         threading.Thread(target=self.monitor_loop, daemon=True).start()
         self.refresh_history()
@@ -26,6 +33,7 @@ class NetworkMonitorApp:
         self.root.protocol("WM_DELETE_WINDOW", self.hide_window)
         threading.Thread(target=run_tray, args=(self.show_window, self.stop), daemon=True).start()
         self.root.mainloop()
+
 
     def hide_window(self):
         self.root.withdraw()
@@ -64,6 +72,37 @@ class NetworkMonitorApp:
                 self.last_status = status
 
             time.sleep(0.5)
+            
+    def show_graph(self):
+        data = self.db.fetch_all()
+        if not data:
+            return
+
+        timestamps = [row[0] for row in reversed(data)]
+        signals = [row[2] for row in reversed(data)]
+
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.plot(timestamps, signals, marker='o', linestyle='-', color='blue')
+        ax.set_title("Wi-Fi Signal Strength Over Time")
+        ax.set_xlabel("Time")
+        ax.set_ylabel("Signal Strength (%)")
+
+    # Rotate and format x-axis
+        ax.tick_params(axis='x', labelrotation=60)
+
+    # Optionally reduce number of labels shown
+        if len(timestamps) > 15:
+            step = len(timestamps) // 15
+            ax.set_xticks(timestamps[::step])
+
+        plt.tight_layout()  # Adjust layout to fit labels
+
+        graph_window = tk.Toplevel(self.root)
+        graph_window.title("Signal History")
+
+        canvas = FigureCanvasTkAgg(fig, master=graph_window)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
 if __name__ == "__main__":
     NetworkMonitorApp()
